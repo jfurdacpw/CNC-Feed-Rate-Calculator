@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CNC Feed & Speed Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface2: #243044;
+      --border: #2d3d52;
+      --text: #e6edf3;
+      --text-muted: #8b9cb3;
+      --accent: #3b82f6;
+      --accent-dim: #2563eb;
+      --success: #22c55e;
+      --warn: #eab308;
+      --danger: #ef4444;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 1rem;
+      min-height: 100vh;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin: 0 0 1rem;
+    }
+
+    .unit-toggle {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 3px;
+      width: fit-content;
+    }
+
+    .unit-toggle button {
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      font-family: inherit;
+      font-weight: 500;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .unit-toggle button:hover {
+      color: var(--text);
+    }
+
+    .unit-toggle button.active {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    section h2 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin: 0 0 1rem;
+    }
+
+    .row {
+      display: grid;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .row:last-child {
+      margin-bottom: 0;
+    }
+
+    .row-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .row-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b9cb3' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2rem;
+    }
+
+    .results {
+      background: linear-gradient(145deg, var(--surface2) 0%, var(--surface) 100%);
+      border-color: var(--accent-dim);
+    }
+
+    .result-line {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .result-line:last-child {
+      border-bottom: none;
+    }
+
+    .result-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .result-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+
+    .result-value.highlight {
+      color: var(--accent);
+      font-size: 1.25rem;
+    }
+
+    .formula {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 1rem 0 0;
+    }
+
+    .calculated {
+      color: var(--accent);
+    }
+
+    .tips {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .tips strong {
+      color: var(--text);
+    }
+
+    @media (max-width: 480px) {
+      .row-2, .row-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>CNC Feed & Speed Calculator</h1>
+    <p class="subtitle">Router bits · MDF &amp; hardwood · Chip load &amp; feed rate</p>
+    <div class="unit-toggle" role="group" aria-label="Measurement system">
+      <button type="button" id="unitMetric" aria-pressed="true">Metric</button>
+      <button type="button" id="unitImperial" aria-pressed="false">Imperial</button>
+    </div>
+
+    <section>
+      <h2>Setup</h2>
+      <div class="row row-2">
+        <div>
+          <label for="diameter" id="diameterLabel">Tool diameter (mm)</label>
+          <input type="number" id="diameter" min="3" max="50" step="0.5" value="12" placeholder="e.g. 12" />
+        </div>
+        <div>
+          <label for="flutes">Flutes (Z)</label>
+          <select id="flutes">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+      </div>
+      <div class="row row-2">
+        <div>
+          <label for="chipLoad" id="chipLoadLabel">Chip load (mm/tooth)</label>
+          <input type="number" id="chipLoad" min="0.05" max="1" step="0.01" value="0.2" placeholder="leave blank to calculate" />
+        </div>
+        <div>
+          <label for="rpm">Spindle RPM</label>
+          <input type="number" id="rpm" min="1000" max="30000" step="500" value="18000" placeholder="leave blank to calculate" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="feedInput" id="feedInputLabel">Feed rate</label>
+          <input type="number" id="feedInput" min="1" max="15000" step="50" placeholder="leave blank to calculate" />
+        </div>
+      </div>
+      <p class="hint">Enter any two of chip load, spindle RPM, and feed rate; the third is calculated.</p>
+    </section>
+
+    <section class="results">
+      <h2>Results</h2>
+      <div class="result-line">
+        <span class="result-label">Feed rate</span>
+        <span class="result-value highlight" id="feedResult">—</span>
+      </div>
+      <div class="result-line">
+        <span class="result-label">Chip load</span>
+        <span class="result-value" id="chipResult">—</span>
+      </div>
+      <div class="result-line">
+        <span class="result-label">Spindle RPM</span>
+        <span class="result-value" id="rpmResult">—</span>
+      </div>
+      <p class="formula" id="feedFormula">—</p>
+      <div class="result-line">
+        <span class="result-label">Z plunge (10% of XY)</span>
+        <span class="result-value" id="zPrimary">—</span>
+      </div>
+      <p class="tips">
+        <strong>Dust = rubbing</strong> → increase feed or reduce RPM.<br />
+        <strong>Chatter / big chips</strong> → reduce feed or depth per pass.<br />
+        <strong>Burning hardwood</strong> → reduce RPM first, then re-check chip load.
+      </p>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const INCH_TO_MM = 25.4;
+
+      var unit = (function () {
+        try {
+          return localStorage.getItem('cnc-calc-unit') === 'imperial' ? 'imperial' : 'metric';
+        } catch (e) {
+          return 'metric';
+        }
+      })();
+
+      const diameter = document.getElementById('diameter');
+      const flutes = document.getElementById('flutes');
+      const chipLoad = document.getElementById('chipLoad');
+      const rpm = document.getElementById('rpm');
+      const feedInput = document.getElementById('feedInput');
+      const unitMetricBtn = document.getElementById('unitMetric');
+      const unitImperialBtn = document.getElementById('unitImperial');
+      const diameterLabel = document.getElementById('diameterLabel');
+      const chipLoadLabel = document.getElementById('chipLoadLabel');
+      const feedInputLabel = document.getElementById('feedInputLabel');
+      const feedResult = document.getElementById('feedResult');
+      const chipResult = document.getElementById('chipResult');
+      const rpmResult = document.getElementById('rpmResult');
+      const feedFormulaEl = document.getElementById('feedFormula');
+      const zPrimary = document.getElementById('zPrimary');
+
+      function hasValue(el) {
+        var v = el.value.trim();
+        if (v === '') return false;
+        var n = unit === 'metric' ? parseFloat(v) : parseFloat(v);
+        return !isNaN(n) && (el.id !== 'feedInput' ? n > 0 : n > 0);
+      }
+
+      function getNum(el, fallback) {
+        var v = parseFloat(el.value);
+        return !isNaN(v) ? v : fallback;
+      }
+
+      function setUnit(newUnit) {
+        if (newUnit === unit) return;
+        var d = parseFloat(diameter.value) || (unit === 'metric' ? 12 : 0.5);
+        var c = parseFloat(chipLoad.value);
+        if (isNaN(c) || c <= 0) c = unit === 'metric' ? 0.2 : 0.008;
+        var f = parseFloat(feedInput.value);
+        var hasFeed = !isNaN(f) && f > 0;
+        if (newUnit === 'imperial') {
+          d = d / INCH_TO_MM;
+          c = c / INCH_TO_MM;
+          if (hasFeed) f = f / INCH_TO_MM;
+        } else {
+          d = d * INCH_TO_MM;
+          c = c * INCH_TO_MM;
+          if (hasFeed) f = f * INCH_TO_MM;
+        }
+        unit = newUnit;
+        try { localStorage.setItem('cnc-calc-unit', unit); } catch (e) {}
+        diameter.value = unit === 'metric' ? d.toFixed(1) : d.toFixed(3);
+        diameter.min = unit === 'metric' ? '3' : '0.125';
+        diameter.max = unit === 'metric' ? '50' : '2';
+        diameter.step = unit === 'metric' ? '0.5' : '0.0625';
+        diameter.placeholder = unit === 'metric' ? 'e.g. 12' : 'e.g. 0.5';
+        chipLoad.value = unit === 'metric' ? c.toFixed(2) : c.toFixed(3);
+        chipLoad.placeholder = 'leave blank to calculate';
+        chipLoad.min = unit === 'metric' ? '0.05' : '0.001';
+        chipLoad.max = unit === 'metric' ? '1' : '0.05';
+        chipLoad.step = unit === 'metric' ? '0.01' : '0.001';
+        rpm.placeholder = 'leave blank to calculate';
+        feedInput.placeholder = 'leave blank to calculate';
+        feedInput.min = unit === 'metric' ? '1' : '1';
+        feedInput.max = unit === 'metric' ? '15000' : '600';
+        feedInput.step = unit === 'metric' ? '50' : '5';
+        if (hasFeed) feedInput.value = f.toFixed(unit === 'metric' ? 0 : 0);
+        else feedInput.value = '';
+        unitMetricBtn.classList.toggle('active', unit === 'metric');
+        unitMetricBtn.setAttribute('aria-pressed', unit === 'metric');
+        unitImperialBtn.classList.toggle('active', unit === 'imperial');
+        unitImperialBtn.setAttribute('aria-pressed', unit === 'imperial');
+        updateLabels();
+        compute();
+      }
+
+      function updateLabels() {
+        diameterLabel.textContent = unit === 'metric' ? 'Tool diameter (mm)' : 'Tool diameter (in)';
+        chipLoadLabel.textContent = unit === 'metric' ? 'Chip load (mm/tooth)' : 'Chip load (in/tooth)';
+        feedInputLabel.textContent = unit === 'metric' ? 'Feed rate (mm/min)' : 'Feed rate (IPM)';
+      }
+
+      function compute() {
+        const z = parseInt(flutes.value, 10) || 2;
+        var hasChip = hasValue(chipLoad);
+        var hasRpm = hasValue(rpm);
+        var hasFeed = hasValue(feedInput);
+
+        var feedUnit = unit === 'metric' ? ' mm/min' : ' IPM';
+        var chipUnit = unit === 'metric' ? ' mm/tooth' : ' in/tooth';
+
+        var resolvedChip, resolvedRpm, resolvedFeed, calculatedWhich;
+
+        if (hasChip && hasRpm && !hasFeed) {
+          resolvedChip = getNum(chipLoad, unit === 'metric' ? 0.2 : 0.008);
+          resolvedRpm = getNum(rpm, 18000);
+          resolvedFeed = resolvedRpm * z * resolvedChip;
+          calculatedWhich = 'feed';
+        } else if (hasChip && !hasRpm && hasFeed) {
+          resolvedChip = getNum(chipLoad, unit === 'metric' ? 0.2 : 0.008);
+          resolvedFeed = getNum(feedInput, 1000);
+          resolvedRpm = resolvedFeed / (z * resolvedChip);
+          if (resolvedRpm <= 0 || !isFinite(resolvedRpm)) resolvedRpm = 18000;
+          calculatedWhich = 'rpm';
+        } else if (!hasChip && hasRpm && hasFeed) {
+          resolvedRpm = getNum(rpm, 18000);
+          resolvedFeed = getNum(feedInput, 1000);
+          resolvedChip = resolvedFeed / (resolvedRpm * z);
+          if (resolvedChip <= 0 || !isFinite(resolvedChip)) resolvedChip = unit === 'metric' ? 0.2 : 0.008;
+          calculatedWhich = 'chip';
+        } else if (hasChip && hasRpm && hasFeed) {
+          resolvedChip = getNum(chipLoad, unit === 'metric' ? 0.2 : 0.008);
+          resolvedRpm = getNum(rpm, 18000);
+          resolvedFeed = getNum(feedInput, 1000);
+          calculatedWhich = null;
+        } else {
+          feedResult.textContent = '—';
+          chipResult.textContent = '—';
+          rpmResult.textContent = '—';
+          feedFormulaEl.textContent = 'Enter any two of chip load, spindle RPM, and feed rate.';
+          zPrimary.textContent = '—';
+          return;
+        }
+
+        var zPlungeVal = resolvedFeed * 0.1;
+        feedResult.textContent = resolvedFeed.toFixed(0) + feedUnit + (calculatedWhich === 'feed' ? ' (calculated)' : '');
+        feedResult.classList.toggle('calculated', calculatedWhich === 'feed');
+        chipResult.textContent = (unit === 'metric' ? resolvedChip.toFixed(2) : resolvedChip.toFixed(3)) + chipUnit + (calculatedWhich === 'chip' ? ' (calculated)' : '');
+        chipResult.classList.toggle('calculated', calculatedWhich === 'chip');
+        rpmResult.textContent = Math.round(resolvedRpm).toLocaleString() + (calculatedWhich === 'rpm' ? ' (calculated)' : '');
+        rpmResult.classList.toggle('calculated', calculatedWhich === 'rpm');
+        var formulaChip = resolvedChip + (unit === 'metric' ? ' mm' : ' in');
+        feedFormulaEl.textContent = resolvedRpm.toLocaleString() + ' × ' + z + ' × ' + formulaChip + ' = ' + resolvedFeed.toFixed(0) + feedUnit;
+        zPrimary.textContent = zPlungeVal.toFixed(0) + feedUnit;
+      }
+
+      unitMetricBtn.addEventListener('click', function () { setUnit('metric'); });
+      unitImperialBtn.addEventListener('click', function () { setUnit('imperial'); });
+
+      [diameter, flutes, chipLoad, rpm, feedInput].forEach(function (el) {
+        el.addEventListener('input', compute);
+        el.addEventListener('change', compute);
+      });
+
+      unitMetricBtn.classList.toggle('active', unit === 'metric');
+      unitImperialBtn.classList.toggle('active', unit === 'imperial');
+      unitMetricBtn.setAttribute('aria-pressed', unit === 'metric');
+      unitImperialBtn.setAttribute('aria-pressed', unit === 'imperial');
+      if (unit === 'imperial') {
+        diameter.min = '0.125';
+        diameter.max = '2';
+        diameter.step = '0.0625';
+        diameter.value = '0.5';
+        diameter.placeholder = 'e.g. 0.5';
+        chipLoad.min = '0.001';
+        chipLoad.max = '0.05';
+        chipLoad.step = '0.001';
+        chipLoad.value = '0.008';
+        chipLoad.placeholder = 'leave blank to calculate';
+        feedInput.max = '600';
+        feedInput.step = '5';
+      } else {
+        chipLoad.value = '0.2';
+        feedInput.max = '15000';
+        feedInput.step = '50';
+      }
+      updateLabels();
+      compute();
+    })();
+  </script>
+</body>
+</html>

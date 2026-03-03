@@ -1,0 +1,7 @@
+Name,Material,Flutes,Chip Load Min,Chip Load Max,Chip Load Mid
+MDF 1-flute,MDF,1,0.01,0.016,0.013
+MDF 2-flute,MDF,2,0.006,0.012,0.009
+MDF 3-flute,MDF,3,0.004,0.008,0.006
+Hardwood 1-flute,Hardwood,1,0.008,0.014,0.011
+Hardwood 2-flute,Hardwood,2,0.005,0.01,0.0075
+Hardwood 3-flute,Hardwood,3,0.004,0.007,0.0055
